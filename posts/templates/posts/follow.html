@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Лента новостей {{ user }}{% endblock %}
+{% block header %}Лента новостей {{ user }}{% endblock %}
+{% block content %}
+
+<div class="row">
+    <div class="col-md-12">
+        {% for post in page %}
+            {% include 'posts/includes/post_item.html' %}
+        {% endfor %}
+        {% include "includes/navbars/paginator.html" %}
+    </div>
+</div>
+{% endblock %} 

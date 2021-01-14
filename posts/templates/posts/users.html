@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Все авторы{% endblock %}
+{% block header %}Все авторы{% endblock %}
+{% block content %}
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Авторов: {{ page.paginator.count }}</h6>
+<div class="col-md-12 users">
+    <div class="row">
+        {% for profile_user in page %}
+            {% include 'posts/includes/author_sidebar.html' %}
+        {% endfor %}
+    </div>
+    {% include "includes/navbars/paginator.html" %}
+</div>
+{% endblock %}

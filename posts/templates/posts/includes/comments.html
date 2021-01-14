@@ -1,0 +1,41 @@
+{% load user_filters %}
+
+{% if user.is_authenticated %}
+<div class="card my-4">
+    <form method="post" action="{% url 'posts:add_comment' username post_id %}">
+        {% csrf_token %}
+        <h6 class="card-header" id="add_comment">Добавить комментарий:</h6>
+        <div class="card-body">
+            <div class="form-group">
+                {{ form.text|addclass:"form-control" }}
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Отправить</button>
+        </div>
+    </form>
+</div>
+{% endif %}
+
+{% if comments %}
+<div class="card my-3 p-3 bg-white rounded shadow-sm">
+    <h6 class="border-bottom border-gray pb-2 mb-0" id="all_comments">Комментарии <strong class="text-muted">{{ comments.count }}</strong></h6>
+    {% for item in comments %}
+    <div class="media text-muted pt-3">
+        <div class="media-body pb-3 mb-0 small lh-125 border-bottom border-gray">
+            <div class="d-flex justify-content-between align-items-center w-100">
+              <div class="d-block justify-content-between">
+                  <a class="card-link" href="{% url 'posts:profile' item.author.username %}">
+                      <strong class="text-gray-dark">@{{ item.author.username }}</strong>
+                  </a>
+                  <small class="text-gray-dark">{{ post.pub_date|date:"d M Y G:i" }}</small>
+              </div>
+              <a class="card-link" href="#">Ответить</a>
+            </div>
+            {{ item.text | linebreaksbr }}
+      </div>
+    </div>
+    {% endfor %}
+    <small class="d-block text-right mt-3">
+      <a href="#">All comments</a>
+    </small>
+</div>
+{% endif %}

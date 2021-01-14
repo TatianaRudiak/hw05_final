@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>{% block title %}The Last Social Media You'll Ever Need{% endblock %} | Yatube</title>
+    <style>
+      .bd-placeholder-img {
+        font-size: 1.125rem;
+        text-anchor: middle;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        user-select: none;
+      }
+
+      @media (min-width: 768px) {
+        .bd-placeholder-img-lg {
+          font-size: 3.5rem;
+        }
+      }
+    </style>
+    <!-- Загрузка статики -->
+    {% load static %}
+    <!-- Custom styles for this template -->
+    <link rel="stylesheet" href="{% static 'bootstrap/dist/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'magnific-popup/magnific-popup.css' %}">
+    <link rel="stylesheet" href="{% static 'yatube/yatube.css' %}">
+    <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+    <script src="{% static 'bootstrap/dist/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'magnific-popup/jquery.magnific-popup.min.js' %}"></script>
+</head>
+
+<body>
+    {% include 'includes/navbars/nav.html' %}
+    <div class="container-fluid">
+        <div class="row">
+            {% include 'includes/navbars/sidebar.html' %}
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 ">
+                <h1 class="h2 pt-3 pb-2 mb-3">{% block header %}The Last Social Media You'll Ever Need{% endblock %}</h1>
+                {% block content %}
+                    <!-- Содержимое страницы -->
+                {% endblock %}
+            </main>
+        </div>
+    </div>
+    {% include 'includes/navbars/footer.html' %}
+    <script>
+        $(document).ready(function() {
+
+        $('.image-popup-vertical-fit').magnificPopup({
+            type: 'image',
+            closeOnContentClick: true,
+            mainClass: 'mfp-img-mobile',
+            image: {
+                verticalFit: true
+            }
+
+        });
+
+    });
+    </script>
+</body>
+
+</html>

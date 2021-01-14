@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Все группы{% endblock %}
+{% block header %}Все группы{% endblock %}
+{% block content %}
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Групп: {{ page.paginator.count }}</h6>
+<div class="col-md-12">
+    <div class="row">
+        {% for group in page %}
+        <div class=" col-md-6 mb-3 mt-1">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <a class="card-link muted" href="{% url 'posts:group-post' group.slug %}">
+                      <strong class="d-block text-gray-dark">#{{ group.title }}</strong>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        {{ group.description|linebreaksbr }}
+                    </p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Публикаций в группе: {{ group.posts.count }}</small>
+                        <small class="text-muted">Последняя запись: {{ group.posts.first.pub_date|date:"d M Y G:i" }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+     </div>
+    {% include "includes/navbars/paginator.html" %}
+</div>
+{% endblock %} 

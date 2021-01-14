@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Персональная страница{% endblock %}
+{% block header %}Персональная страница{% endblock %}
+{% block content %}
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Публикаций: {{ page.paginator.count }}</h6>
+<div class="row">
+    {% include 'posts/includes/author_sidebar.html'  with profile=True %}
+    <div class="col-md-9">
+        {% for post in page %}
+            {% include 'posts/includes/post_item.html' %}
+        {% endfor %}
+        {% include "includes/navbars/paginator.html" %}
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,176 @@
+from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.shortcuts import get_object_or_404, redirect, render, reverse
+
+from .forms import CommentForm, PostForm
+from .models import Group, Post, Follow
+
+User = get_user_model()
+
+
+def paginate(request, qs, limit):
+    paginator = Paginator(qs, limit)
+    page_number = request.GET.get('page')
+    return paginator.get_page(page_number)
+
+
+def get_followees_list(user_obj):
+    followees_id = Follow.objects.filter(user=user_obj).values_list('author_id')
+    user_list = User.objects.filter(id__in=followees_id)
+    return user_list
+
+
+def get_followers_list(user_obj):
+    followers_id = Follow.objects.filter(author=user_obj).values_list('user_id')
+    user_list = User.objects.filter(id__in=followers_id)
+    return user_list
+
+
+@login_required
+def add_comment(request, username, post_id):
+    form = CommentForm(request.POST or None)
+    post = get_object_or_404(Post, pk=post_id)
+    if form.is_valid():
+        form.instance.author = request.user
+        form.instance.post = post
+        form.save()
+        return redirect(reverse('posts:post',  kwargs={'username': username, 'post_id': post_id})+'#all_comments')
+    return redirect(reverse('posts:post',  kwargs={'username': username, 'post_id': post_id})+'#add_comment')
+
+
+@login_required
+def new_post(request):
+    form = PostForm(request.POST or None, files=request.FILES or None)
+    if form.is_valid():
+        form.instance.author = request.user
+        form.save()
+        return redirect(reverse('posts:index'))
+    return render(request, 'posts/new_post.html', {'form': form})
+
+
+def index(request):
+    post_list = Post.objects.select_related('group').all()
+    page = paginate(request, post_list, 10)
+    return render(request, 'posts/index.html', {'page': page, 'paginator': page.paginator,})
+
+
+def group_posts(request, slug):
+    group = get_object_or_404(Group, slug=slug)
+    post_list = group.posts.all()
+    page = paginate(request, post_list, 10)
+    return render(request, 'group.html', {'group': group, 'page': page, 'paginator': page.paginator,})
+
+
+def groups(request):
+    group_list = Group.objects.all().order_by('pk')
+    page = paginate(request, group_list, 10)
+    return render(request, 'posts/groups.html', {'page': page, 'paginator': page.paginator,})
+
+
+def users(request):
+    user_list = User.objects.all().order_by('pk')
+    following = []
+    if request.user.is_authenticated:
+        following = get_followees_list(request.user)
+    page = paginate(request, user_list, 12)
+    return render(request, 'posts/users.html', {
+        'page': page,
+        'following': following,
+        'paginator': page.paginator,
+    })
+
+
+@login_required
+def followees(request):
+    user_list = get_followees_list(request.user)
+    page = paginate(request, user_list, 12)
+    return render(request, 'posts/followees.html', {'page': page, 'paginator': page.paginator,})
+
+
+@login_required
+def followers(request):
+    user_list = get_followers_list(request.user)
+    following = get_followees_list(request.user)
+    page = paginate(request, user_list, 12)
+    return render(request, 'posts/followers.html', {
+        'page': page,
+        'paginator': page.paginator,
+        'following': following,
+    })
+
+
+def profile(request, username):
+    profile_user = get_object_or_404(User, username=username)
+    post_list = profile_user.posts.all()
+    page = paginate(request, post_list, 10)
+    following = []
+    if request.user.is_authenticated:
+        if Follow.objects.filter(user=request.user, author=profile_user):
+            following.append(profile_user)
+    return render(request, 'posts/profile.html', {
+        'profile_user': profile_user,
+        'page': page,
+        'paginator': page.paginator,
+        'following': following,
+    })
+
+
+def post_view(request, username, post_id):
+    profile_user = get_object_or_404(User, username=username)
+    post = get_object_or_404(Post, pk=post_id, author=profile_user)
+    comments = post.comments.all()
+    form = CommentForm(request.POST or None)
+    return render(request, 'posts/post.html', {'post': post, 'comments': comments, 'form':form})
+
+
+@login_required
+def post_edit(request, username, post_id):
+    profile_user = get_object_or_404(User, username=username)
+    post = get_object_or_404(Post, pk=post_id, author=profile_user)
+    if profile_user != request.user:
+        return redirect(reverse('posts:post', kwargs={'username': username, 'post_id': post_id}))
+    form = PostForm(request.POST or None, files=request.FILES or None, instance=post)
+    if form.is_valid():
+        form.save()
+        return redirect(reverse('posts:post', kwargs={'username': username, 'post_id': post_id}))
+    return render(request, 'posts/new_post.html', {'form': form, 'post': post})
+
+
+@login_required
+def follow_index(request):
+    profile_user = request.user
+    followees_id = Follow.objects.filter(user=profile_user).values_list('author_id')
+    post_list = Post.objects.filter(author_id__in=followees_id).select_related('author')
+    page = paginate(request, post_list, 10)
+    return render(request, 'posts/follow.html', {'page': page, 'paginator': page.paginator, })
+
+
+@login_required
+def profile_follow(request, username):
+    profile_user = get_object_or_404(User, username=username)
+    if not Follow.objects.filter(user=request.user, author=profile_user) and request.user != profile_user:
+        Follow.objects.create(user=request.user, author=profile_user)
+    return redirect('posts:profile', username=username)
+
+
+@login_required
+def profile_unfollow(request, username):
+    profile_user = get_object_or_404(User, username=username)
+    follow = Follow.objects.filter(user=request.user, author=profile_user)
+    if follow:
+        follow.delete()
+    return redirect('posts:profile', username=username)
+
+
+def page_not_found(request, exception):
+    return render(
+        request,
+        "misc/404.html",
+        {"path": request.path},
+        status=404
+    )
+
+
+def server_error(request):
+    return render(request, "misc/500.html", status=500)

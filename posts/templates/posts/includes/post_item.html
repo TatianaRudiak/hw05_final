@@ -1,0 +1,68 @@
+<div class="card mb-3 mt-1 shadow-sm">
+  <div class="card-header">
+      <div class="d-flex justify-content-between align-items-center">
+          <ul class="nav nav-pills card-header-pills">
+              <!-- Ссылка на автора через @ -->
+              <li class="nav-item">
+                  <a class="nav-link" name="post_{{ post.id }}" href="{% url 'posts:profile' post.author.username %}">
+                    <strong class="d-block text-gray-dark">@{{ post.author }}</strong>
+                  </a>
+              </li>
+              <!-- Если пост относится к какому-нибудь сообществу, то отобразим ссылку на него через # -->
+              {% if post.group %}
+              <li class="nav-item">
+                  <a class="nav-link" href="{% url 'posts:group-post' post.group.slug %}">
+                      <strong class="d-block text-gray-dark">#{{ post.group.title }}</strong>
+                  </a>
+              </li>
+              {% endif %}
+          </ul>
+          <!-- Дата публикации поста -->
+          <small class="text-muted">{{ post.pub_date|date:"d M Y G:i" }}</small>
+      </div>
+  </div>
+  <!-- Отображение картинки -->
+  {% load thumbnail %}
+  {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+  <img class="card-img" src="{{ im.url }}" />
+  {% endthumbnail %}
+  <!-- Отображение текста поста -->
+  <div class="card-body">
+    <p class="card-text">
+      {% if page.1 %}
+        {{ post.text|truncatewords:50|linebreaksbr }}
+            <a class="card-link" href="{% url 'posts:post' post.author post.id %}">Читать далее</a>
+        {% else %}
+            {{ post.text|linebreaksbr }}
+        {% endif %}
+    </p>
+    <!-- Отображение ссылки на комментарии -->
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="btn-group">
+        {% if user.is_authenticated %}
+            <a class="btn" href="{% url 'posts:post' post.author post.id %}#add_comment" role="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Добавить комментарий">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="feather feather-chat-left-text-fill" viewBox="0 0 16 16">
+                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm3.5 1a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5z"/>
+                </svg>
+                <span class="badge bg-light text-dark rounded-pill align-text-bottom">{{ post.comments.count }}</span>
+            </a>
+          <!-- Ссылка на редактирование поста для автора -->
+            {% if user == post.author %}
+                <a class="btn" href="{% url 'posts:post_edit' post.author.username post.id %}" role="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Редактировать">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="feather feather-pen-fill" viewBox="0 0 16 16">
+                        <path d="M13.498.795l.149-.149a1.207 1.207 0 1 1 1.707 1.708l-.149.148a1.5 1.5 0 0 1-.059 2.059L4.854 14.854a.5.5 0 0 1-.233.131l-4 1a.5.5 0 0 1-.606-.606l1-4a.5.5 0 0 1 .131-.232l9.642-9.642a.5.5 0 0 0-.642.056L6.854 4.854a.5.5 0 1 1-.708-.708L9.44.854A1.5 1.5 0 0 1 11.5.796a1.5 1.5 0 0 1 1.998-.001z"/>
+                    </svg>
+                </a>
+            {% endif %}
+        {% else %}
+            <a class="btn" href="{% url 'posts:post' post.author post.id %}#all_comments" role="button" data-bs-toggle="tooltip" data-bs-placement="top" title="Комментарии">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="feather feather-chat-left-text-fill" viewBox="0 0 16 16">
+                    <path d="M0 2a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4.414a1 1 0 0 0-.707.293L.854 15.146A.5.5 0 0 1 0 14.793V2zm3.5 1a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h9a.5.5 0 0 0 0-1h-9zm0 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1h-5z"/>
+                </svg>
+                <span class="badge bg-light text-dark rounded-pill align-text-bottom">{{ post.comments.count }}</span>
+            </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>

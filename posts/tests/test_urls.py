@@ -32,7 +32,7 @@ class PostPagesURLTests(TestCase):
             },
             reverse('posts:group-post', kwargs={'slug': cls.group.slug}): {
                 'status_codes': [200, 200],
-                'template': 'group.html'
+                'template': 'posts/group.html'
             },
             reverse('posts:profile', kwargs={'username': cls.user.username}): {
                 'status_codes': [200, 200],

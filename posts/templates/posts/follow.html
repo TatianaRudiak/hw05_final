@@ -2,8 +2,8 @@
 {% block title %}Лента новостей {{ user }}{% endblock %}
 {% block header %}Лента новостей {{ user }}{% endblock %}
 {% block content %}
-
-<div class="row">
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Публикаций: {{ page.paginator.count }}</h6>
+<div class="row" id="follow_index">
     <div class="col-md-12">
         {% for post in page %}
             {% include 'posts/includes/post_item.html' %}

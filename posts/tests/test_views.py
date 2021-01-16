@@ -1,10 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.core.paginator import Page
-from django.test import Client
+from django.core.cache import cache
+from django.test import Client, override_settings
 from django.urls import reverse
 
-from posts.models import Group, Post, Follow
+from posts.models import Follow, Group, Post
 from posts.tests import MyTestCase
 
 User = get_user_model()
@@ -36,7 +36,7 @@ class PostsPagesViewsTests(MyTestCase):
         templates_pages_names = {
             'posts/index.html': reverse('posts:index'),
             'posts/new_post.html': reverse('posts:new_post'),
-            'group.html': (reverse(
+            'posts/group.html': (reverse(
                 'posts:group-post', kwargs={'slug': PostsPagesViewsTests.group.slug}
             )),
             'posts/post.html': reverse(
@@ -174,6 +174,24 @@ class PaginatorViewsTest(MyTestCase):
                     response = self.client.get(reverse_name + f'?page={page_number}')
                     page = response.context.get('page')
                     self.assertEqual(page.end_index()-page.start_index()+1, limits[page_number-1])
+
+
+    def test_index_page_caches_posts_items(self):
+        cache.clear()
+        self.maxDiff = None
+        reverse_name = reverse('posts:index')
+        with self.subTest(reverse_name=reverse_name, cache_cleared=False):
+            page2_1 = self.client.get(reverse_name).content
+            Post.objects.create(
+                text=f'Тестируем кэширование 2',
+                author=PaginatorViewsTest.user,
+            )
+            page_2_2 = self.client.get(reverse_name).content
+            self.assertHTMLEqual(str(page2_1), str(page_2_2))
+        cache.clear()
+        page_2_2 = self.client.get(reverse_name).content
+        with self.subTest(reverse_name=reverse_name, cache_cleared=True):
+            self.assertHTMLNotEqual(str(page2_1), str(page_2_2))
 
 
 class FollowViewsTest(MyTestCase):

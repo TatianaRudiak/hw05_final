@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Результаты поиска{% endblock %}
+{% block header %}Результаты поиска по запросу: {{ msg_q }}{% endblock %}
+{% block content %}
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Найдено: {{ page.paginator.count }}</h6>
+<div class="row">
+    <div class="col-md-12">
+        {% for post in page %}
+            {% include 'posts/includes/post_item.html' %}
+        {% endfor %}
+        {% include "includes/navbars/paginator.html" %}
+    </div>
+</div>
+{% endblock %} 

@@ -95,9 +95,19 @@ class Comment(models.Model):
         help_text=LABELS['Comment']['created']['help_text'],
         auto_now_add=True,
     )
+    # parent = models.ForeignKey(
+    #     'self',
+    #     on_delete=models.CASCADE,
+    #     null=True,
+    #     blank=True,
+    #     related_name='replies'
+    # )
 
     class Meta:
         ordering = ['-created']
+
+    def __str__(self):
+        return f'Comment by @{self.author}'
 
 
 class Follow(models.Model):

@@ -2,6 +2,7 @@
 {% block title %}Подписки{% endblock %}
 {% block header %}Подписки{% endblock %}
 {% block content %}
+<h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Подписок: {{ page.paginator.count }}</h6>
 <div class="col-md-12">
     <div class="row">
         {% for profile_user in page %}

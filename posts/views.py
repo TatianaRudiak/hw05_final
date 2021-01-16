@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 
 from .forms import CommentForm, PostForm
-from .models import Group, Post, Follow
+from .models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -25,6 +26,44 @@ def get_followers_list(user_obj):
     followers_id = Follow.objects.filter(author=user_obj).values_list('user_id')
     user_list = User.objects.filter(id__in=followers_id)
     return user_list
+
+
+def construct_search(q):
+    if q.startswith('^'):
+        return 'text__istartswith', q[1:]
+    elif q.startswith('='):
+        return 'text__iexact', q[1:]
+    elif q.startswith('@') or q.startswith('#'):
+        return q.split()[0], ''.join(q.split()[1:])
+    else:
+        return ['text__icontains', q]
+
+
+def search_results(request):
+    q = request.GET['q']
+    if not q:
+        return redirect(request.META.get('HTTP_REFERER', reverse('posts:index')))
+    q_search, q_cleaned = construct_search(str(q))
+    msg_q = f'"{q_cleaned}"'
+    results = []
+    if q_search.startswith('@'):
+        try:
+            author = User.objects.get(username=q_search[1:])
+            results = Post.objects.filter(author=author).filter(Q(text__icontains=q_cleaned))
+            msg_q += f' в постах автора: {q_search}'
+        except Exception:
+            msg_q = f'Не найден автор: {q_search}'
+    elif q_search.startswith('#'):
+        try:
+            group = Group.objects.get(slug=q_search[1:])
+            results = Post.objects.filter(group=group).filter(Q(text__icontains=q_cleaned))
+            msg_q += f' в постах из группы: {q_search}'
+        except Exception:
+            msg_q = f'Не найдена группа: {q_search}'
+    else:
+        results = Post.objects.filter(Q(**{q_search: q_cleaned}))
+    page = paginate(request, results, 10)
+    return render(request, 'posts/search_results.html', {'page': page, 'q': q, 'msg_q': msg_q,})
 
 
 @login_required
@@ -59,7 +98,7 @@ def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
     page = paginate(request, post_list, 10)
-    return render(request, 'group.html', {'group': group, 'page': page, 'paginator': page.paginator,})
+    return render(request, 'posts/group.html', {'group': group, 'page': page, 'paginator': page.paginator,})
 
 
 def groups(request):
@@ -151,7 +190,7 @@ def profile_follow(request, username):
     profile_user = get_object_or_404(User, username=username)
     if not Follow.objects.filter(user=request.user, author=profile_user) and request.user != profile_user:
         Follow.objects.create(user=request.user, author=profile_user)
-    return redirect('posts:profile', username=username)
+    return redirect(request.META.get('HTTP_REFERER', reverse('posts:profile', kwargs={'username': username})))
 
 
 @login_required
@@ -160,7 +199,7 @@ def profile_unfollow(request, username):
     follow = Follow.objects.filter(user=request.user, author=profile_user)
     if follow:
         follow.delete()
-    return redirect('posts:profile', username=username)
+    return redirect(request.META.get('HTTP_REFERER', reverse('posts:profile', kwargs={'username': username})))
 
 
 def page_not_found(request, exception):

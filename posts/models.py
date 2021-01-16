@@ -77,24 +77,13 @@ class Comment(models.Model):
     post = models.ForeignKey(
         Post, on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name=LABELS['Comment']['post']['verbose_name'],
-        help_text=LABELS['Comment']['post']['help_text'],
     )
     author = models.ForeignKey(
         User, on_delete=models.CASCADE,
         related_name='comments',
-        verbose_name=LABELS['Comment']['author']['verbose_name'],
-        help_text=LABELS['Comment']['author']['help_text'],
     )
-    text = models.TextField(
-        verbose_name=LABELS['Comment']['text']['verbose_name'],
-        help_text=LABELS['Comment']['text']['help_text'],
-    )
-    created = models.DateTimeField(
-        verbose_name=LABELS['Comment']['created']['verbose_name'],
-        help_text=LABELS['Comment']['created']['help_text'],
-        auto_now_add=True,
-    )
+    text = models.TextField()
+    created = models.DateTimeField(auto_now_add=True)
     # parent = models.ForeignKey(
     #     'self',
     #     on_delete=models.CASCADE,

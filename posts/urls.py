@@ -9,7 +9,7 @@ urlpatterns = [
     path('new/', views.new_post, name='new_post'),
     path('groups/', views.groups, name='groups'),
     path('users/', views.users, name='users'),
-    path('search/', views.search_results, name='search_results'), # search?=q<char:q>
+    path('search/', views.search_results, name='search_results'),
     path('follow/', views.follow_index, name='follow_index'),
     path('followees/', views.followees, name='followees'),
     path('followers/', views.followers, name='followers'),

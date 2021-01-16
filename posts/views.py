@@ -63,7 +63,7 @@ def search_results(request):
     else:
         results = Post.objects.filter(Q(**{q_search: q_cleaned}))
     page = paginate(request, results, 10)
-    return render(request, 'posts/search_results.html', {'page': page, 'q': q, 'msg_q': msg_q,})
+    return render(request, 'posts/search_results.html', {'page': page, 'q': q, 'msg_q': msg_q, })
 
 
 @login_required
@@ -91,20 +91,20 @@ def new_post(request):
 def index(request):
     post_list = Post.objects.select_related('group').all()
     page = paginate(request, post_list, 10)
-    return render(request, 'posts/index.html', {'page': page, 'paginator': page.paginator,})
+    return render(request, 'posts/index.html', {'page': page, 'paginator': page.paginator, })
 
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
     post_list = group.posts.all()
     page = paginate(request, post_list, 10)
-    return render(request, 'posts/group.html', {'group': group, 'page': page, 'paginator': page.paginator,})
+    return render(request, 'posts/group.html', {'group': group, 'page': page, 'paginator': page.paginator, })
 
 
 def groups(request):
     group_list = Group.objects.all().order_by('pk')
     page = paginate(request, group_list, 10)
-    return render(request, 'posts/groups.html', {'page': page, 'paginator': page.paginator,})
+    return render(request, 'posts/groups.html', {'page': page, 'paginator': page.paginator, })
 
 
 def users(request):
@@ -124,7 +124,7 @@ def users(request):
 def followees(request):
     user_list = get_followees_list(request.user)
     page = paginate(request, user_list, 12)
-    return render(request, 'posts/followees.html', {'page': page, 'paginator': page.paginator,})
+    return render(request, 'posts/followees.html', {'page': page, 'paginator': page.paginator, })
 
 
 @login_required
@@ -160,7 +160,7 @@ def post_view(request, username, post_id):
     post = get_object_or_404(Post, pk=post_id, author=profile_user)
     comments = post.comments.all()
     form = CommentForm(request.POST or None)
-    return render(request, 'posts/post.html', {'post': post, 'comments': comments, 'form':form})
+    return render(request, 'posts/post.html', {'post': post, 'comments': comments, 'form': form})
 
 
 @login_required

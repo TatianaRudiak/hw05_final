@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import Client, override_settings
+from django.test import Client
 from django.urls import reverse
 
 from posts.models import Follow, Group, Post
@@ -28,6 +28,7 @@ class PostsPagesViewsTests(MyTestCase):
         cls.posts = cls.group.posts.all()[:11]
 
     def setUp(self):
+        cache.clear()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsPagesViewsTests.user)
 
@@ -118,31 +119,22 @@ class PostsPagesViewsTests(MyTestCase):
             'group', 'text', 'author'
         )
 
-    def test_profile_follow(self):
-        """Авторизованный пользователь может подписываться
-        на других пользователей и удалять их из подписок."""
-        follows_count = Follow.objects.count()
-        another_user = User.objects.create(username='AnotherTestUser')
-        self.authorized_client.force_login(another_user)
-        self.authorized_client.post(
-            reverse(
-                'posts:profile_follow',
-                kwargs={'username': PostsPagesViewsTests.user.username,}
-            ),
-            follow=True
-        )
-        self.assertEqual(Follow.objects.count(), follows_count + 1)
-        self.assertTrue(Follow.objects.filter(user=another_user).exists())
-        new_follow = Follow.objects.filter(user=another_user).first()
-        self.assertEqual(new_follow.author, PostsPagesViewsTests.user)
-        self.authorized_client.post(
-            reverse(
-                'posts:profile_unfollow',
-                kwargs={'username': PostsPagesViewsTests.user.username, }
-            ),
-            follow=True
-        )
-        self.assertEqual(Follow.objects.count(), follows_count)
+    def test_index_page_cached(self):
+        """Страница index.html кэшируется"""
+        [Post.objects.create(text=f'Кэш {i}', author=PostsPagesViewsTests.user,) for i in range(3)]
+        reverse_name = reverse('posts:index')
+        with self.subTest(reverse_name=reverse_name, cache_cleared=False):
+            page_before_change = self.client.get(reverse_name).content
+            Post.objects.create(
+                text=f'Нет на кэшированной странице',
+                author=PostsPagesViewsTests.user,
+            )
+            page_after_change = self.client.get(reverse_name).content
+            self.assertEqual(page_before_change, page_after_change)
+        cache.clear()
+        page_after_change_cache_cleared = self.client.get(reverse_name).content
+        with self.subTest(reverse_name=reverse_name, cache_cleared=True):
+            self.assertNotEqual(page_before_change, page_after_change_cache_cleared)
 
 
 class PaginatorViewsTest(MyTestCase):
@@ -167,6 +159,9 @@ class PaginatorViewsTest(MyTestCase):
             reverse('posts:profile', kwargs={'username': PaginatorViewsTest.user.username}): [10, 3],
         }
 
+    def setUp(self):
+        cache.clear()
+
     def test_page_contains_ten_records(self):
         for reverse_name, limits in PaginatorViewsTest.reverse_names_limits.items():
             for page_number in (1, 2):
@@ -176,55 +171,67 @@ class PaginatorViewsTest(MyTestCase):
                     self.assertEqual(page.end_index()-page.start_index()+1, limits[page_number-1])
 
 
-    def test_index_page_caches_posts_items(self):
-        cache.clear()
-        self.maxDiff = None
-        reverse_name = reverse('posts:index')
-        with self.subTest(reverse_name=reverse_name, cache_cleared=False):
-            page2_1 = self.client.get(reverse_name).content
-            Post.objects.create(
-                text=f'Тестируем кэширование 2',
-                author=PaginatorViewsTest.user,
-            )
-            page_2_2 = self.client.get(reverse_name).content
-            self.assertHTMLEqual(str(page2_1), str(page_2_2))
-        cache.clear()
-        page_2_2 = self.client.get(reverse_name).content
-        with self.subTest(reverse_name=reverse_name, cache_cleared=True):
-            self.assertHTMLNotEqual(str(page2_1), str(page_2_2))
-
-
 class FollowViewsTest(MyTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = []
-        for i in range(3):
-            cls.user.append(User.objects.create(username=f'TestUser_{i}'))
-            for j in range(3):
-                Post.objects.create(
-                    text=f'Тестовый текст {j}',
-                    author=cls.user[i],
-                )
-        Follow.objects.create(user=cls.user[0], author=cls.user[1])
-        Follow.objects.create(user=cls.user[1], author=cls.user[2])
-        cls.reverse_names_limits = {reverse('posts:follow_index'): [3, 3, 0]}
+        cls.user_only = User.objects.create(username='user_only')
+        cls.author_user = User.objects.create(username='author_user')
+        cls.author_only = User.objects.create(username='author_only')
+        cls.users = (cls.user_only, cls.author_user, cls.author_only)
+        for user in cls.users:
+            [Post.objects.create(text=f'Тестовый текст {user}', author=user,) for i in range(3)]
+        Follow.objects.create(user=cls.user_only, author=cls.author_user)
+        Follow.objects.create(user=cls.author_user, author=cls.author_only)
+        cls.reverse_name = reverse('posts:follow_index')
 
     def setUp(self):
+        cache.clear()
         self.authorized_client = Client()
 
     def test_follow_index(self):
         """Новая запись пользователя появляется в ленте тех,
         кто на него подписан и не появляется в ленте тех,
         кто не подписан на него.."""
-        for reverse_name, limits in FollowViewsTest.reverse_names_limits.items():
-            for i in range(3):
-                with self.subTest(reverse_name=reverse_name, usrname=FollowViewsTest.user[i]):
-                    self.authorized_client.force_login(FollowViewsTest.user[i])
-                    response = self.authorized_client.post(reverse_name)
-                    page = response.context.get('page')
-                    self.assertEqual(page.paginator.count, limits[i])
-                    self.assertEqual(
-                        page.paginator.object_list.filter(
-                            author=FollowViewsTest.user[0 if i == 2 else i+1]).count(), limits[i]
-                    )
+        for user in FollowViewsTest.users:
+            reverse_name = FollowViewsTest.reverse_name
+            with self.subTest(reverse_name=reverse_name, usrname=user.username):
+                self.authorized_client.force_login(user)
+                response = self.authorized_client.post(reverse_name)
+                page = response.context.get('page')
+                self.assertEqual(
+                    page.paginator.count,
+                    page.paginator.object_list.filter(
+                        author=User.objects.filter(following__user=user).first()
+                    ).count()
+                )
+
+    def test_profile_follow(self):
+        """Авторизованный пользователь может подписываться
+        на других пользователей."""
+        follows_count = Follow.objects.count()
+        self.authorized_client.force_login(FollowViewsTest.author_only)
+        self.authorized_client.post(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': FollowViewsTest.user_only.username,}
+            ),
+            follow=True
+        )
+        self.assertEqual(Follow.objects.count(), follows_count + 1)
+        self.assertTrue(Follow.objects.filter(user=FollowViewsTest.author_only).exists())
+
+    def test_profile_unfollow(self):
+        """Авторизованный пользователь может удалять
+        других пользователей из подписок."""
+        follows_count = Follow.objects.count()
+        self.authorized_client.force_login(FollowViewsTest.user_only)
+        self.assertIsInstance(Follow.objects.get(user=FollowViewsTest.user_only, author=FollowViewsTest.author_user), Follow)
+        self.authorized_client.post(
+            reverse(
+                'posts:profile_unfollow',
+                kwargs={'username': FollowViewsTest.author_user.username, }
+            ),
+            follow=True
+        )
+        self.assertEqual(Follow.objects.count(), follows_count-1)

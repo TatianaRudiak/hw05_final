@@ -30,8 +30,8 @@
         <ul class="list-group list-group-flush">
             <li class="list-group-item">
                 <div class="text-muted">
-                    Подписчиков <span class="badge rounded-pill bg-light text-dark">{{ profile_user.following.distinct.count }}</span><br />
-                    Подписок <span class="badge rounded-pill bg-light text-dark">{{ profile_user.follower.distinct.count }}</span>
+                    Подписчиков <span class="badge rounded-pill bg-light text-dark">{{ profile_user.following.count }}</span><br />
+                    Подписок <span class="badge rounded-pill bg-light text-dark">{{ profile_user.follower.count }}</span>
                 </div>
             </li>
             <li class="list-group-item">

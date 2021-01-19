@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render, reverse
+from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
 from .models import Follow, Group, Post
@@ -14,18 +15,6 @@ def paginate(request, qs, limit):
     paginator = Paginator(qs, limit)
     page_number = request.GET.get('page')
     return paginator.get_page(page_number)
-
-
-def get_followees_list(user_obj):
-    followees_id = Follow.objects.filter(user=user_obj).values_list('author_id')
-    user_list = User.objects.filter(id__in=followees_id)
-    return user_list
-
-
-def get_followers_list(user_obj):
-    followers_id = Follow.objects.filter(author=user_obj).values_list('user_id')
-    user_list = User.objects.filter(id__in=followers_id)
-    return user_list
 
 
 def construct_search(q):
@@ -69,7 +58,7 @@ def search_results(request):
 @login_required
 def add_comment(request, username, post_id):
     form = CommentForm(request.POST or None)
-    post = get_object_or_404(Post, pk=post_id)
+    post = get_object_or_404(Post, author__username=username, pk=post_id)
     if form.is_valid():
         form.instance.author = request.user
         form.instance.post = post
@@ -88,6 +77,7 @@ def new_post(request):
     return render(request, 'posts/new_post.html', {'form': form})
 
 
+@cache_page(20, key_prefix='index_page')
 def index(request):
     post_list = Post.objects.select_related('group').all()
     page = paginate(request, post_list, 10)
@@ -109,9 +99,7 @@ def groups(request):
 
 def users(request):
     user_list = User.objects.all().order_by('pk')
-    following = []
-    if request.user.is_authenticated:
-        following = get_followees_list(request.user)
+    following = request.user.is_authenticated and User.objects.filter(following__user=request.user)
     page = paginate(request, user_list, 12)
     return render(request, 'posts/users.html', {
         'page': page,
@@ -122,15 +110,15 @@ def users(request):
 
 @login_required
 def followees(request):
-    user_list = get_followees_list(request.user)
+    user_list = User.objects.filter(following__user=request.user).order_by('pk')
     page = paginate(request, user_list, 12)
     return render(request, 'posts/followees.html', {'page': page, 'paginator': page.paginator, })
 
 
 @login_required
 def followers(request):
-    user_list = get_followers_list(request.user)
-    following = get_followees_list(request.user)
+    user_list = User.objects.filter(follower__author=request.user).order_by('pk')
+    following = User.objects.filter(following__user=request.user)
     page = paginate(request, user_list, 12)
     return render(request, 'posts/followers.html', {
         'page': page,
@@ -143,30 +131,28 @@ def profile(request, username):
     profile_user = get_object_or_404(User, username=username)
     post_list = profile_user.posts.all()
     page = paginate(request, post_list, 10)
-    following = []
-    if request.user.is_authenticated:
-        if Follow.objects.filter(user=request.user, author=profile_user):
-            following.append(profile_user)
+    following = request.user.is_authenticated and User.objects.filter(
+        following__user=request.user,
+        following__author=profile_user
+    )
     return render(request, 'posts/profile.html', {
-        'profile_user': profile_user,
-        'page': page,
-        'paginator': page.paginator,
-        'following': following,
-    })
+            'profile_user': profile_user,
+            'page': page,
+            'paginator': page.paginator,
+            'following': following,
+        })
 
 
 def post_view(request, username, post_id):
-    profile_user = get_object_or_404(User, username=username)
-    post = get_object_or_404(Post, pk=post_id, author=profile_user)
-    comments = post.comments.all()
+    post = get_object_or_404(Post, author__username=username, pk=post_id)
     form = CommentForm(request.POST or None)
-    return render(request, 'posts/post.html', {'post': post, 'comments': comments, 'form': form})
+    return render(request, 'posts/post.html', {'post': post, 'form': form})
 
 
 @login_required
 def post_edit(request, username, post_id):
     profile_user = get_object_or_404(User, username=username)
-    post = get_object_or_404(Post, pk=post_id, author=profile_user)
+    post = get_object_or_404(Post, author__username=username, pk=post_id)
     if profile_user != request.user:
         return redirect(reverse('posts:post', kwargs={'username': username, 'post_id': post_id}))
     form = PostForm(request.POST or None, files=request.FILES or None, instance=post)
@@ -178,9 +164,7 @@ def post_edit(request, username, post_id):
 
 @login_required
 def follow_index(request):
-    profile_user = request.user
-    followees_id = Follow.objects.filter(user=profile_user).values_list('author_id')
-    post_list = Post.objects.filter(author_id__in=followees_id).select_related('author')
+    post_list = Post.objects.filter(author__following__user=request.user)
     page = paginate(request, post_list, 10)
     return render(request, 'posts/follow.html', {'page': page, 'paginator': page.paginator, })
 
@@ -188,8 +172,8 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     profile_user = get_object_or_404(User, username=username)
-    if not Follow.objects.filter(user=request.user, author=profile_user) and request.user != profile_user:
-        Follow.objects.create(user=request.user, author=profile_user)
+    if request.user != profile_user:
+        Follow.objects.get_or_create(user=request.user, author=profile_user)
     return redirect(request.META.get('HTTP_REFERER', reverse('posts:profile', kwargs={'username': username})))
 
 
@@ -197,8 +181,7 @@ def profile_follow(request, username):
 def profile_unfollow(request, username):
     profile_user = get_object_or_404(User, username=username)
     follow = Follow.objects.filter(user=request.user, author=profile_user)
-    if follow:
-        follow.delete()
+    follow.delete()
     return redirect(request.META.get('HTTP_REFERER', reverse('posts:profile', kwargs={'username': username})))
 
 

@@ -1,11 +1,11 @@
 {% extends "base.html" %} 
 {% block title %} Ошибка 500 {% endblock %}
+{% block header %} Ошибка 500 {% endblock %}
 {% block content %}
 
 <div class="row">
     <div class="col-md-6">
         <div class="alert alert-dark" role="alert">
-          <h3 class="alert-heading">Ошибка 500</h3>
           <p>Ошибка на сервере, попробуйте обновить страницу или обратиться позже.</p>
           <hr>
           <p class="mb-0"><a class="alert-link" href="{% url  'posts:index' %}">Вернуться на главную</a></p>

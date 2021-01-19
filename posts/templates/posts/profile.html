@@ -4,7 +4,7 @@
 {% block content %}
 <h6 class="badge bg-light text-dark rounded-pill align-text-bottom">Публикаций: {{ page.paginator.count }}</h6>
 <div class="row" id="profile">
-    {% include 'posts/includes/author_sidebar.html'  with profile=True %}
+    {% include 'posts/includes/author_card.html'  with profile=True %}
     <div class="col-md-9">
         {% for post in page %}
             {% include 'posts/includes/post_item.html' %}

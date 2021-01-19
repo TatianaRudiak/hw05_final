@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.urls import reverse
 
 from .constants import LABELS
 
@@ -27,7 +28,7 @@ class Group(models.Model):
         return self.title
 
     def get_absolute_url(self):
-        return f'/group/{self.slug}/'
+        return reverse('posts:group-post', kwargs={'slug': self.slug})
 
 
 class Post(models.Model):
@@ -70,7 +71,13 @@ class Post(models.Model):
         return self.text[:15]
 
     def get_absolute_url(self):
-        return f'/{self.author}/{self.pk}/'
+        return reverse(
+            'posts:post',
+            kwargs={
+                'username': self.author.username,
+                'post_id': self.pk
+            }
+        )
 
 
 class Comment(models.Model):
@@ -108,3 +115,6 @@ class Follow(models.Model):
         User, on_delete=models.CASCADE,
         related_name='following',
     )
+
+    class Meta:
+        unique_together = ['user', 'author']

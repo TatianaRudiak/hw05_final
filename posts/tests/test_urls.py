@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -52,9 +53,28 @@ class PostPagesURLTests(TestCase):
                     'posts:post',
                     kwargs={'username': cls.post.author.username, 'post_id': cls.post.pk})+'#add_comment'
             },
+            reverse('posts:follow_index'): {
+                'status_codes': [200, 302],
+                'template': 'posts/follow.html',
+            },
+            reverse('posts:followees'): {
+                'status_codes': [200, 302],
+                'template': 'posts/followees.html',
+            },
+            reverse('posts:followers'): {
+                'status_codes': [200, 302],
+                'template': 'posts/followers.html',
+            },
+            reverse('posts:profile_follow', kwargs={'username': cls.user.username}): {
+                'status_codes': [302, 302],
+            },
+            reverse('posts:profile_unfollow', kwargs={'username': cls.user.username}): {
+                'status_codes': [302, 302],
+            },
         }
 
     def setUp(self):
+        cache.clear()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostPagesURLTests.user)
 
@@ -70,9 +90,9 @@ class PostPagesURLTests(TestCase):
         """Проверка доступности адреса для авторизованного и НЕавторизованного пользователя."""
         for url_name, kwargs in PostPagesURLTests.url_names_kwargs.items():
             clients = [self.authorized_client, self.client]
-            for i in range(len(clients)):
-                with self.subTest(client=clients[i], url_name=url_name):
-                    response = clients[i].get(url_name)
+            for i, client in enumerate(clients):
+                with self.subTest(client=client, url_name=url_name):
+                    response = client.get(url_name)
                     self.assertEqual(response.status_code, kwargs['status_codes'][i])
 
     def test_url_redirect_nonauthor_on_post_page(self):
@@ -112,9 +132,9 @@ class PostPagesURLTests(TestCase):
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         for url_name, kwargs in PostPagesURLTests.url_names_kwargs.items():
-            with self.subTest(url_name=url_name):
-                response = self.authorized_client.get(url_name)
-                if 'template' in kwargs:
+            if 'template' in kwargs:
+                with self.subTest(url_name=url_name):
+                    response = self.authorized_client.get(url_name)
                     self.assertTemplateUsed(response, kwargs['template'])
 
     def test_urls_redirect_correct_template(self):

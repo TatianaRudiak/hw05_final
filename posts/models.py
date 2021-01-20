@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
+from django.core.validators import ValidationError
 from django.db import models
+from django.db.models import CheckConstraint, F, Q, UniqueConstraint
 from django.urls import reverse
+from django.utils.translation import gettext_lazy
 
 from .constants import LABELS
 
@@ -91,19 +94,12 @@ class Comment(models.Model):
     )
     text = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
-    # parent = models.ForeignKey(
-    #     'self',
-    #     on_delete=models.CASCADE,
-    #     null=True,
-    #     blank=True,
-    #     related_name='replies'
-    # )
 
     class Meta:
         ordering = ['-created']
 
     def __str__(self):
-        return f'Comment by @{self.author}'
+        return f'Комментирий @{self.author}'
 
 
 class Follow(models.Model):
@@ -117,4 +113,11 @@ class Follow(models.Model):
     )
 
     class Meta:
-        unique_together = ['user', 'author']
+        constraints = [
+            UniqueConstraint(fields=['user', 'author'], name='unique_follow'),
+            CheckConstraint(check=~Q(user_id=F('author_id')), name='user_not_author'),
+        ]
+
+    def clean(self):
+        if self.user_id == self.author_id:
+            raise ValidationError({'user_id': gettext_lazy('Пользователь не может подписаться сам насебя.')})

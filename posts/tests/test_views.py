@@ -28,9 +28,9 @@ class PostsPagesViewsTests(MyTestCase):
         cls.posts = cls.group.posts.all()[:11]
 
     def setUp(self):
-        cache.clear()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostsPagesViewsTests.user)
+        cache.clear()
 
     def test_pages_use_correct_templates(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -126,7 +126,7 @@ class PostsPagesViewsTests(MyTestCase):
         with self.subTest(reverse_name=reverse_name, cache_cleared=False):
             page_before_change = self.client.get(reverse_name).content
             Post.objects.create(
-                text=f'Нет на кэшированной странице',
+                text='Нет на кэшированной странице',
                 author=PostsPagesViewsTests.user,
             )
             page_after_change = self.client.get(reverse_name).content
@@ -182,12 +182,13 @@ class FollowViewsTest(MyTestCase):
         for user in cls.users:
             [Post.objects.create(text=f'Тестовый текст {user}', author=user,) for i in range(3)]
         Follow.objects.create(user=cls.user_only, author=cls.author_user)
+        Follow.objects.create(user=cls.user_only, author=cls.author_only)
         Follow.objects.create(user=cls.author_user, author=cls.author_only)
         cls.reverse_name = reverse('posts:follow_index')
 
     def setUp(self):
-        cache.clear()
         self.authorized_client = Client()
+        cache.clear()
 
     def test_follow_index(self):
         """Новая запись пользователя появляется в ленте тех,
@@ -202,7 +203,7 @@ class FollowViewsTest(MyTestCase):
                 self.assertEqual(
                     page.paginator.count,
                     page.paginator.object_list.filter(
-                        author=User.objects.filter(following__user=user).first()
+                        author__in=User.objects.filter(following__user=user)
                     ).count()
                 )
 
@@ -214,12 +215,63 @@ class FollowViewsTest(MyTestCase):
         self.authorized_client.post(
             reverse(
                 'posts:profile_follow',
-                kwargs={'username': FollowViewsTest.user_only.username,}
+                kwargs={'username': FollowViewsTest.user_only.username, }
             ),
             follow=True
         )
         self.assertEqual(Follow.objects.count(), follows_count + 1)
-        self.assertTrue(Follow.objects.filter(user=FollowViewsTest.author_only).exists())
+        self.assertTrue(
+            Follow.objects.filter(
+                user=FollowViewsTest.author_only, author=FollowViewsTest.user_only
+            ).exists()
+        )
+
+    def test_invalid_profile_follow_same_profile_multiple_times(self):
+        """Авторизованный пользователь не может подписываться
+        на одного и того же другого пользователя несколько раз."""
+        self.authorized_client.force_login(FollowViewsTest.user_only)
+        self.assertTrue(
+            Follow.objects.filter(
+                user=FollowViewsTest.user_only, author=FollowViewsTest.author_only
+            ).exists()
+        )
+        follows_count = Follow.objects.count()
+        for i in range(3):
+            self.authorized_client.post(
+                reverse(
+                    'posts:profile_follow',
+                    kwargs={'username': FollowViewsTest.author_only.username, }
+                ),
+                follow=True
+            )
+        self.assertEqual(Follow.objects.count(), follows_count)
+
+    def test_invalid_profile_follow_authorized_user(self):
+        """Неавторизованный пользователь не может подписываться
+        на других пользователей."""
+        follows_count = Follow.objects.count()
+        self.client.post(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': FollowViewsTest.user_only.username, }
+            ),
+            follow=True
+        )
+        self.assertEqual(Follow.objects.count(), follows_count)
+
+    def test_invalid_self_profile_follow(self):
+        """Авторизованный пользователь не может подписываться
+        сам га себя."""
+        follows_count = Follow.objects.count()
+        self.authorized_client.force_login(FollowViewsTest.author_only)
+        self.client.post(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': FollowViewsTest.author_only.username, }
+            ),
+            follow=True
+        )
+        self.assertEqual(Follow.objects.count(), follows_count)
 
     def test_profile_unfollow(self):
         """Авторизованный пользователь может удалять

@@ -151,9 +151,8 @@ def post_view(request, username, post_id):
 
 @login_required
 def post_edit(request, username, post_id):
-    profile_user = get_object_or_404(User, username=username)
     post = get_object_or_404(Post, author__username=username, pk=post_id)
-    if profile_user != request.user:
+    if post.author != request.user:
         return redirect(reverse('posts:post', kwargs={'username': username, 'post_id': post_id}))
     form = PostForm(request.POST or None, files=request.FILES or None, instance=post)
     if form.is_valid():
@@ -185,14 +184,14 @@ def profile_unfollow(request, username):
     return redirect(request.META.get('HTTP_REFERER', reverse('posts:profile', kwargs={'username': username})))
 
 
-def page_not_found(request, exception):
+def page_not_found(request, exception=None):
     return render(
         request,
-        "misc/404.html",
-        {"path": request.path},
+        'misc/404.html',
+        {'path': request.path},
         status=404
     )
 
 
 def server_error(request):
-    return render(request, "misc/500.html", status=500)
+    return render(request, 'misc/500.html', status=500)

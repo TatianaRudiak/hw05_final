@@ -4,7 +4,7 @@ import tempfile
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import Client, TestCase, override_settings
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from posts.models import Comment, Group, Post
@@ -63,7 +63,7 @@ class NewPostFormTests(TestCase):
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.assertTrue(Post.objects.filter(author=another_user).exists())
         new_post = Post.objects.filter(author=another_user).first()
-        self.assertEqual(new_post.group, Group.objects.get(pk=form_data['group']))
+        self.assertEqual(new_post.group.pk, form_data['group'])
         self.assertEqual(new_post.text, form_data['text'])
         self.assertEqual(new_post.image.file.read(), form_data['image'].file.getvalue())
 
@@ -93,7 +93,7 @@ class NewPostFormTests(TestCase):
             self.assertEqual(NewPostFormTests.post.text, form_data['text'])
             self.assertEqual(NewPostFormTests.post.author, NewPostFormTests.user)
             self.assertEqual(NewPostFormTests.post.group, Group.objects.get(pk=form_data['group']))
-            self.assertEqual(NewPostFormTests.post.image.file.read() , form_data['image'].file.getvalue())
+            self.assertEqual(NewPostFormTests.post.image.file.read(), form_data['image'].file.getvalue())
 
     def test_invalid_create_post_due_to_non_valid_file_type(self):
         """Форма с загруженным файлом, не являющимся изображением,
@@ -135,7 +135,7 @@ class NewPostFormTests(TestCase):
             'text': 'Невалидная форма',
             'image': not_valid_uploaded,
         }
-        response =  self.authorized_client.post(
+        response = self.authorized_client.post(
             reverse(
                 'posts:post_edit',
                 kwargs={
@@ -187,13 +187,12 @@ class NewPostFormTests(TestCase):
         self.assertEqual(new_comment.post, NewPostFormTests.post)
 
     def test_valid_create_comment_non_authorized_user(self):
-        """Неавторизованный пользователь не создает запись в Comment
-        и перенаправляется на страницу регистрации."""
+        """Неавторизованный пользователь не создает запись в Comment."""
         comments_count = Comment.objects.count()
         form_data = {
             'text': 'Комментарий неавторизованного пользователя',
         }
-        response = self.client.post(
+        self.client.post(
             reverse(
                 'posts:add_comment',
                 kwargs={
@@ -205,12 +204,3 @@ class NewPostFormTests(TestCase):
             follow=True
         )
         self.assertEqual(Comment.objects.count(), comments_count)
-        self.assertRedirects(
-            response,
-            reverse('login') + '?next=' + reverse(
-                'posts:add_comment',
-                kwargs={
-                    'username': NewPostFormTests.post.author.username,
-                    'post_id': NewPostFormTests.post.pk
-                })
-        )

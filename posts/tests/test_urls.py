@@ -74,9 +74,9 @@ class PostPagesURLTests(TestCase):
         }
 
     def setUp(self):
-        cache.clear()
         self.authorized_client = Client()
         self.authorized_client.force_login(PostPagesURLTests.user)
+        cache.clear()
 
     def test_url_status_code_404(self):
         """Проверка возвращает ли сервер код 404, если страница не найдена."""

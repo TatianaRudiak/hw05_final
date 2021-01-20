@@ -7,11 +7,11 @@ LABELS = {
     'Post': {
         'text': {'verbose_name': 'Текст', 'help_text': 'Напишите здесь текст публикации'},
         'pub_date': {
-            'verbose_name': 'Дата публикации',
+            'verbose_name': 'Дата',
             'help_text': 'Дата публикации устанавливается автоматически'
         },
         'author': {
-            'verbose_name': 'Автор публикации',
+            'verbose_name': 'Автор',
             'help_text': 'Автор публикации устанавливается автоматически'
         },
         'group': {

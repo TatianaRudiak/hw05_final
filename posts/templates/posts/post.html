@@ -4,8 +4,8 @@
 {% load user_filters %}
 {% block content %}
 <div class="row">
-<!--    {% include 'posts/includes/author_card.html' with profile_user=post.author page=post|to_list %}-->
-    <div class="col-md-12">
+    {% include 'posts/includes/author_card.html' with profile_user=post.author page=post|to_list %}
+    <div class="col-md-9">
         {% include 'posts/includes/post_item.html' with profile_user=post.author %}
         {% include 'posts/includes/comments.html' with username=post.author post_id=post.id comments=post.comments.all %}
     </div>

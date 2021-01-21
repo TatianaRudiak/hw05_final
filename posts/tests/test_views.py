@@ -236,17 +236,16 @@ class FollowViewsTest(MyTestCase):
             ).exists()
         )
         follows_count = Follow.objects.count()
-        for i in range(3):
-            self.authorized_client.post(
-                reverse(
-                    'posts:profile_follow',
-                    kwargs={'username': FollowViewsTest.author_only.username, }
-                ),
-                follow=True
-            )
+        self.authorized_client.post(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': FollowViewsTest.author_only.username, }
+            ),
+            follow=True
+        )
         self.assertEqual(Follow.objects.count(), follows_count)
 
-    def test_invalid_profile_follow_authorized_user(self):
+    def test_invalid_profile_follow_non_authorized_user(self):
         """Неавторизованный пользователь не может подписываться
         на других пользователей."""
         follows_count = Follow.objects.count()
@@ -261,10 +260,10 @@ class FollowViewsTest(MyTestCase):
 
     def test_invalid_self_profile_follow(self):
         """Авторизованный пользователь не может подписываться
-        сам га себя."""
+        сам на себя."""
         follows_count = Follow.objects.count()
         self.authorized_client.force_login(FollowViewsTest.author_only)
-        self.client.post(
+        self.authorized_client.post(
             reverse(
                 'posts:profile_follow',
                 kwargs={'username': FollowViewsTest.author_only.username, }

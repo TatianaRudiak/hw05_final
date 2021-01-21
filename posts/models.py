@@ -99,7 +99,7 @@ class Comment(models.Model):
         ordering = ['-created']
 
     def __str__(self):
-        return f'Комментирий @{self.author}'
+        return f'Комментарий @{self.author}'
 
 
 class Follow(models.Model):
@@ -115,9 +115,9 @@ class Follow(models.Model):
     class Meta:
         constraints = [
             UniqueConstraint(fields=['user', 'author'], name='unique_follow'),
-            CheckConstraint(check=~Q(user_id=F('author_id')), name='user_not_author'),
+            CheckConstraint(check=~Q(user=F('author')), name='user_not_author'),
         ]
 
     def clean(self):
-        if self.user_id == self.author_id:
-            raise ValidationError({'user_id': gettext_lazy('Пользователь не может подписаться сам насебя.')})
+        if self.user == self.author:
+            raise ValidationError({'user_not_author': gettext_lazy('Пользователь не может подписаться сам на себя.')})

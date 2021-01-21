@@ -13,6 +13,10 @@ ALLOWED_HOSTS = [
     'testserver',
 ]
 
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
+
 INSTALLED_APPS = [
     'about',
     'users',
@@ -24,9 +28,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sorl.thumbnail',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',

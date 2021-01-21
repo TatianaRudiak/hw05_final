@@ -146,7 +146,10 @@ def profile(request, username):
 def post_view(request, username, post_id):
     post = get_object_or_404(Post, author__username=username, pk=post_id)
     form = CommentForm(request.POST or None)
-    return render(request, 'posts/post.html', {'post': post, 'form': form})
+    following = request.user.is_authenticated and User.objects.filter(
+        following__user=request.user,
+        following__author__username=username,)
+    return render(request, 'posts/post.html', {'post': post, 'form': form, 'following': following,})
 
 
 @login_required

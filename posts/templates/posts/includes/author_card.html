@@ -39,7 +39,7 @@
                     Записей <span class="badge rounded-pill bg-light text-dark">{{ profile_user.posts.count }}</span>
                 </div>
             </li>
-            {% if user.is_authenticated and profile and user != profile_user%}
+            {% if user.is_authenticated and user != profile_user and follow_button %}
                 <li class="list-group-item">
                     {% if followees or profile_user in following %}
                     <a class="btn btn-sm btn-secondary"

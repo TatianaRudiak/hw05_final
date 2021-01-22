@@ -8,10 +8,11 @@
         {% for profile_user in page %}
             {% include 'posts/includes/author_card.html' %}
         {% empty %}
-            <div class="card mb-3 mt-1 shadow-sm">
-                <div class="card-body">
-                    <p class="card-text">У вас пока нет ни одного подписчика.</p>
-                    <a href="#" class="btn btn-sm btn-primary">Suggestions</a>
+            <div class="col-md-6">
+                <div class="alert alert-info" role="alert">
+                  <p>У вас пока нет ни одного подписчика.</p>
+                  <hr>
+                  <p class="mb-0"><a class="alert-link" href="{% url 'posts:new_post' %}">Написать новый пост</a></p>
                 </div>
             </div>
         {% endfor %}

@@ -4,14 +4,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = '+-yqwmhr@!s5@lursr50^v5#!8q$3wq5c&@#dtngxancj)ey9x'
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
-    # 'localhost',
-    # '127.0.0.1',
-    # '[::1]',
-    # 'testserver',
-    '*',
+    'localhost',
+    '127.0.0.1',
+    '[::1]',
+    'testserver',
+    # '*',
 ]
 
 INTERNAL_IPS = [

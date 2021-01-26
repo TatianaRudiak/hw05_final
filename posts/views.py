@@ -79,14 +79,14 @@ def new_post(request):
 
 @cache_page(20, key_prefix='index_page')
 def index(request):
-    post_list = Post.objects.select_related('group').all()
+    post_list = Post.objects.select_related('group', 'author').prefetch_related('comments').all()
     page = paginate(request, post_list, 10)
     return render(request, 'posts/index.html', {'page': page, 'paginator': page.paginator, })
 
 
 def group_posts(request, slug):
     group = get_object_or_404(Group, slug=slug)
-    post_list = group.posts.all()
+    post_list = group.posts.select_related('author').prefetch_related('comments').all()
     page = paginate(request, post_list, 10)
     return render(request, 'posts/group.html', {'group': group, 'page': page, 'paginator': page.paginator, })
 
@@ -98,7 +98,7 @@ def groups(request):
 
 
 def users(request):
-    user_list = User.objects.all().order_by('pk')
+    user_list = User.objects.prefetch_related('posts', 'following', 'follower').all().order_by('pk')
     following = request.user.is_authenticated and User.objects.filter(following__user=request.user)
     page = paginate(request, user_list, 12)
     return render(request, 'posts/users.html', {
@@ -129,7 +129,7 @@ def followers(request):
 
 def profile(request, username):
     profile_user = get_object_or_404(User, username=username)
-    post_list = profile_user.posts.all()
+    post_list = profile_user.posts.select_related('group', 'author').prefetch_related('comments').all()
     page = paginate(request, post_list, 10)
     following = request.user.is_authenticated and User.objects.filter(
         following__user=request.user,

@@ -15,7 +15,7 @@ mypy==0.790
 mypy-extensions==0.4.3
 packaging==20.1
 pep8==1.7.1
-Pillow==8.1.0
+Pillow==8.3.2
 pluggy==0.13.1
 py==1.8.1
 pycodestyle==2.6.0
